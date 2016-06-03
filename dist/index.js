@@ -177,7 +177,7 @@ var app = (0, _koa2.default)();
     this.body = 'Error: ' + err.message;
   },
   accepts: function accepts() {
-    return this.query.json || this.request.body.json ? 'json' : 'text';
+    return (this.query.json || this.request.body.json) == 1 ? 'json' : 'text';
   }
 });
 app.use((0, _koaBodyparser2.default)());

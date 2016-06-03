@@ -124,7 +124,7 @@ onerror(app, {
     }
   },
   text(err) { this.body = 'Error: ' + err.message },
-  accepts() { return this.query.json || this.request.body.json ? 'json' : 'text' }
+  accepts() { return (this.query.json || this.request.body.json) == 1 ? 'json' : 'text' }
 })
 app.use(bodyParser())
 app.use(function* (next) {
