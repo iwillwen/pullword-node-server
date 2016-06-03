@@ -2,13 +2,14 @@ import koa from 'koa'
 import Router from 'koa-router'
 import bodyParser from 'koa-bodyparser'
 import net from 'net'
+import onerror from 'koa-onerror'
 
 function segment(query, threshold = 0, debug = 0, ip) {
   return new Promise((resolve, reject) => {
     query = query.replace(/[\r\n\t]+/, ' ').trim()
 
     if (checkSingleWord(query)) {
-      return reject(new Error('Could not segment a single word'))
+      return reject(new Error('Cannot segment a single word'))
     }
 
     query += `\t${threshold}\t${debug}\t${ip}\r\n`
@@ -116,7 +117,19 @@ router.post('/post.php', function* () {
 })
 
 const app = koa()
+onerror(app, {
+  json(err) {
+    this.body = {
+      error: err.message
+    }
+  },
+  accepts() { return 'json' }
+})
 app.use(bodyParser())
+app.use(function* (next) {
+  this.set('Access-Control-Allow-Origin', '*')
+  yield next
+})
 app.use(router.routes())
 app.use(router.allowedMethods())
 

@@ -18,6 +18,10 @@ var _net = require('net');
 
 var _net2 = _interopRequireDefault(_net);
 
+var _koaOnerror = require('koa-onerror');
+
+var _koaOnerror2 = _interopRequireDefault(_koaOnerror);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function segment(query) {
@@ -29,7 +33,7 @@ function segment(query) {
     query = query.replace(/[\r\n\t]+/, ' ').trim();
 
     if (checkSingleWord(query)) {
-      return reject(new Error('Could not segment a single word'));
+      return reject(new Error('Cannot segment a single word'));
     }
 
     query += '\t' + threshold + '\t' + debug + '\t' + ip + '\r\n';
@@ -163,7 +167,21 @@ router.post('/post.php', function* () {
 });
 
 var app = (0, _koa2.default)();
+(0, _koaOnerror2.default)(app, {
+  json: function json(err) {
+    this.body = {
+      error: err.message
+    };
+  },
+  accepts: function accepts() {
+    return 'json';
+  }
+});
 app.use((0, _koaBodyparser2.default)());
+app.use(function* (next) {
+  this.set('Access-Control-Allow-Origin', '*');
+  yield next;
+});
 app.use(router.routes());
 app.use(router.allowedMethods());
 
