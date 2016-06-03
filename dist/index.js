@@ -2,25 +2,21 @@
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var _koa = require('koa');
+var _express = require('express');
 
-var _koa2 = _interopRequireDefault(_koa);
+var _express2 = _interopRequireDefault(_express);
 
-var _koaRouter = require('koa-router');
+var _coExpress = require('co-express');
 
-var _koaRouter2 = _interopRequireDefault(_koaRouter);
+var _coExpress2 = _interopRequireDefault(_coExpress);
 
-var _koaBodyparser = require('koa-bodyparser');
+var _bodyParser = require('body-parser');
 
-var _koaBodyparser2 = _interopRequireDefault(_koaBodyparser);
+var _bodyParser2 = _interopRequireDefault(_bodyParser);
 
 var _net = require('net');
 
 var _net2 = _interopRequireDefault(_net);
-
-var _koaOnerror = require('koa-onerror');
-
-var _koaOnerror2 = _interopRequireDefault(_koaOnerror);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -92,101 +88,89 @@ function parseQuery(query) {
   return { source: source, threshold: threshold, debug: debug };
 }
 
-var router = new _koaRouter2.default();
+var app = (0, _express2.default)();
+app.use(_bodyParser2.default.json());
+app.use(_bodyParser2.default.urlencoded());
+app.use(function (req, res, next) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+});
 
-router.get('/get', function* () {
-  var _parseQuery = parseQuery(this.query);
+app.get('/get', (0, _coExpress2.default)(function* (req, res) {
+  var _parseQuery = parseQuery(req.query);
 
   var source = _parseQuery.source;
   var threshold = _parseQuery.threshold;
   var debug = _parseQuery.debug;
 
-  var ip = this.ip;
+  var ip = req.ip;
 
   var result = yield segment(source, threshold, debug, ip);
 
-  if (this.query.json == '1') {
+  if (req.query.json == '1') {
     result = resultToArray(result, debug);
+    return res.json(result);
   }
 
-  this.body = result;
-});
+  res.send(result);
+}));
 
-router.get('/get.php', function* () {
-  var _parseQuery2 = parseQuery(this.query);
+app.get('/get.php', (0, _coExpress2.default)(function* (req, res) {
+  var _parseQuery2 = parseQuery(req.query);
 
   var source = _parseQuery2.source;
   var threshold = _parseQuery2.threshold;
   var debug = _parseQuery2.debug;
 
-  var ip = this.ip;
+  var ip = req.ip;
 
   var result = yield segment(source, threshold, debug, ip);
 
-  if (this.query.json == '1') {
+  if (req.query.json == '1') {
     result = resultToArray(result, debug);
+    return res.json(result);
   }
 
-  this.body = result;
-});
+  res.send(result);
+}));
 
-router.post('/post', function* () {
-  var _parseQuery3 = parseQuery(this.request.body);
+app.post('/post', (0, _coExpress2.default)(function* (req, res) {
+  var _parseQuery3 = parseQuery(req.body);
 
   var source = _parseQuery3.source;
   var threshold = _parseQuery3.threshold;
   var debug = _parseQuery3.debug;
 
-  var ip = this.ip;
+  var ip = req.ip;
 
   var result = yield segment(source, threshold, debug, ip);
 
-  if (this.query.json == '1') {
+  if (req.query.json == '1') {
     result = resultToArray(result, debug);
+    return res.json(result);
   }
 
-  this.body = result;
-});
+  res.send(result);
+}));
 
-router.post('/post.php', function* () {
-  var _parseQuery4 = parseQuery(this.request.body);
+app.post('/post.php', (0, _coExpress2.default)(function* (req, res) {
+  var _parseQuery4 = parseQuery(req.body);
 
   var source = _parseQuery4.source;
   var threshold = _parseQuery4.threshold;
   var debug = _parseQuery4.debug;
 
-  var ip = this.ip;
+  var ip = req.ip;
 
   var result = yield segment(source, threshold, debug, ip);
 
-  if (this.query.json == '1') {
+  if (req.query.json == '1') {
     result = resultToArray(result, debug);
+    return res.json(result);
   }
 
-  this.body = result;
-});
-
-var app = (0, _koa2.default)();
-(0, _koaOnerror2.default)(app, {
-  json: function json(err) {
-    this.body = {
-      error: err.message
-    };
-  },
-  text: function text(err) {
-    this.body = 'Error: ' + err.message;
-  },
-  accepts: function accepts() {
-    return (this.query.json || this.request.body.json) == 1 ? 'json' : 'text';
-  }
-});
-app.use((0, _koaBodyparser2.default)());
-app.use(function* (next) {
-  this.set('Access-Control-Allow-Origin', '*');
-  yield next;
-});
-app.use(router.routes());
-app.use(router.allowedMethods());
+  res.send(result);
+}));
 
 app.listen(process.env.PORT || 80, function () {
   console.log('PullWord is running');

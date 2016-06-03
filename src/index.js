@@ -1,8 +1,7 @@
-import koa from 'koa'
-import Router from 'koa-router'
-import bodyParser from 'koa-bodyparser'
+import express from 'express'
+import wrap from 'co-express'
+import bodyParser from 'body-parser'
 import net from 'net'
-import onerror from 'koa-onerror'
 
 function segment(query, threshold = 0, debug = 0, ip) {
   return new Promise((resolve, reject) => {
@@ -62,77 +61,69 @@ function parseQuery(query) {
   return { source, threshold, debug }
 }
 
-const router = new Router()
+const app = express()
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded())
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  next()
+})
 
-router.get('/get', function* () {
-  const { source, threshold, debug } = parseQuery(this.query)
-  const ip = this.ip
+app.get('/get', wrap(function* (req, res) {
+  const { source, threshold, debug } = parseQuery(req.query)
+  const ip = req.ip
 
   let result = yield segment(source, threshold, debug, ip)
 
-  if (this.query.json == '1') {
+  if (req.query.json == '1') {
     result = resultToArray(result, debug)
+    return res.json(result)
   }
 
-  this.body = result
-})
+  res.send(result)
+}))
 
-router.get('/get.php', function* () {
-  const { source, threshold, debug } = parseQuery(this.query)
-  const ip = this.ip
+app.get('/get.php', wrap(function* (req, res) {
+  const { source, threshold, debug } = parseQuery(req.query)
+  const ip = req.ip
 
   let result = yield segment(source, threshold, debug, ip)
 
-  if (this.query.json == '1') {
+  if (req.query.json == '1') {
     result = resultToArray(result, debug)
+    return res.json(result)
   }
 
-  this.body = result
-})
+  res.send(result)
+}))
 
-router.post('/post', function* () {
-  const { source, threshold, debug } = parseQuery(this.request.body)
-  const ip = this.ip
+app.post('/post', wrap(function* (req, res) {
+  const { source, threshold, debug } = parseQuery(req.body)
+  const ip = req.ip
 
   let result = yield segment(source, threshold, debug, ip)
 
-  if (this.query.json == '1') {
+  if (req.query.json == '1') {
     result = resultToArray(result, debug)
+    return res.json(result)
   }
 
-  this.body = result
-})
+  res.send(result)
+}))
 
-router.post('/post.php', function* () {
-  const { source, threshold, debug } = parseQuery(this.request.body)
-  const ip = this.ip
+app.post('/post.php', wrap(function* (req, res) {
+  const { source, threshold, debug } = parseQuery(req.body)
+  const ip = req.ip
 
   let result = yield segment(source, threshold, debug, ip)
 
-  if (this.query.json == '1') {
+  if (req.query.json == '1') {
     result = resultToArray(result, debug)
+    return res.json(result)
   }
 
-  this.body = result
-})
-
-const app = koa()
-onerror(app, {
-  json(err) {
-    this.body = {
-      error: err.message
-    }
-  },
-  text(err) { this.body = 'Error: ' + err.message },
-  accepts() { return (this.query.json || this.request.body.json) == 1 ? 'json' : 'text' }
-})
-app.use(bodyParser())
-app.use(function* (next) {
-  this.set('Access-Control-Allow-Origin', '*')
-  yield next
-})
-app.use(router.routes())
-app.use(router.allowedMethods())
+  res.send(result)
+}))
 
 app.listen(process.env.PORT || 80, () => {
   console.log('PullWord is running')
