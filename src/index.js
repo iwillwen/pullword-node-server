@@ -123,7 +123,8 @@ onerror(app, {
       error: err.message
     }
   },
-  accepts() { return 'json' }
+  text(err) { this.body = 'Error: ' + err.message },
+  accepts() { return this.query.json || this.request.body.json ? 'json' : 'text' }
 })
 app.use(bodyParser())
 app.use(function* (next) {

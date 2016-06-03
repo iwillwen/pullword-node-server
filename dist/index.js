@@ -173,8 +173,11 @@ var app = (0, _koa2.default)();
       error: err.message
     };
   },
+  text: function text(err) {
+    this.body = 'Error: ' + err.message;
+  },
   accepts: function accepts() {
-    return 'json';
+    return this.query.json || this.request.body.json ? 'json' : 'text';
   }
 });
 app.use((0, _koaBodyparser2.default)());
