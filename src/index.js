@@ -11,15 +11,15 @@ function segment(query, threshold = 0, debug = 0, ip) {
       return reject(new Error('Could not segment a single word'))
     }
 
-    query += `\t${threshold}\t${debug}\t${ip}`
+    query += `\t${threshold}\t${debug}\t${ip}\r\n`
 
-    const socket = net.connect(2015, 'localhost')
+    const socket = net.connect(2015, (process.env.REMOTE ? 'api.pullword.com' : 'localhost'))
 
     let resultBuffer = new Buffer('')
 
     socket
       .on('connect', () => socket.write(query))
-      .on('data', data => resultBuffer = resultBuffer.concat(data))
+      .on('data', data => resultBuffer = Buffer.concat([resultBuffer, data]))
       .on('end', () => resolve(resultBuffer.toString()))
       .on('error', err => reject(err))
   })
@@ -31,7 +31,8 @@ function resultToArray(result, debug) {
     .filter(Boolean)
     .map(line => {
       if (debug > 0) {
-        const [ word, probability ] = line.split(':')
+        let [ word, probability ] = line.split(':')
+        probability = parseFloat(probability)
         return { word, probability }
       } else {
         return line
@@ -53,7 +54,7 @@ function checkChinese(query) {
 }
 
 function parseQuery(query) {
-  const str = query.source || ''
+  const source = query.source || ''
   const threshold = parseFloat(query.threshold || query.param1 || 0)
   const debug = parseInt(query.debug || query.param2 || 0)
 
@@ -69,7 +70,7 @@ router.get('/get', function* () {
   let result = yield segment(source, threshold, debug, ip)
 
   if (this.query.json == '1') {
-    result = resultToArray(result)
+    result = resultToArray(result, debug)
   }
 
   this.body = result
@@ -82,7 +83,7 @@ router.get('/get.php', function* () {
   let result = yield segment(source, threshold, debug, ip)
 
   if (this.query.json == '1') {
-    result = resultToArray(result)
+    result = resultToArray(result, debug)
   }
 
   this.body = result
@@ -95,7 +96,7 @@ router.post('/post', function* () {
   let result = yield segment(source, threshold, debug, ip)
 
   if (this.query.json == '1') {
-    result = resultToArray(result)
+    result = resultToArray(result, debug)
   }
 
   this.body = result
@@ -108,7 +109,7 @@ router.post('/post.php', function* () {
   let result = yield segment(source, threshold, debug, ip)
 
   if (this.query.json == '1') {
-    result = resultToArray(result)
+    result = resultToArray(result, debug)
   }
 
   this.body = result
@@ -119,6 +120,6 @@ app.use(bodyParser())
 app.use(router.routes())
 app.use(router.allowedMethods())
 
-app.listen(80, () => {
+app.listen(process.env.PORT || 80, () => {
   console.log('PullWord is running')
 })

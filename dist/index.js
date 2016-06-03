@@ -32,16 +32,16 @@ function segment(query) {
       return reject(new Error('Could not segment a single word'));
     }
 
-    query += '\t' + threshold + '\t' + debug + '\t' + ip;
+    query += '\t' + threshold + '\t' + debug + '\t' + ip + '\r\n';
 
-    var socket = _net2.default.connect(2015, 'localhost');
+    var socket = _net2.default.connect(2015, process.env.REMOTE ? 'api.pullword.com' : 'localhost');
 
     var resultBuffer = new Buffer('');
 
     socket.on('connect', function () {
       return socket.write(query);
     }).on('data', function (data) {
-      return resultBuffer = resultBuffer.concat(data);
+      return resultBuffer = Buffer.concat([resultBuffer, data]);
     }).on('end', function () {
       return resolve(resultBuffer.toString());
     }).on('error', function (err) {
@@ -60,6 +60,7 @@ function resultToArray(result, debug) {
       var word = _line$split2[0];
       var probability = _line$split2[1];
 
+      probability = parseFloat(probability);
       return { word: word, probability: probability };
     } else {
       return line;
@@ -80,7 +81,7 @@ function checkChinese(query) {
 }
 
 function parseQuery(query) {
-  var str = query.source || '';
+  var source = query.source || '';
   var threshold = parseFloat(query.threshold || query.param1 || 0);
   var debug = parseInt(query.debug || query.param2 || 0);
 
@@ -101,7 +102,7 @@ router.get('/get', function* () {
   var result = yield segment(source, threshold, debug, ip);
 
   if (this.query.json == '1') {
-    result = resultToArray(result);
+    result = resultToArray(result, debug);
   }
 
   this.body = result;
@@ -119,7 +120,7 @@ router.get('/get.php', function* () {
   var result = yield segment(source, threshold, debug, ip);
 
   if (this.query.json == '1') {
-    result = resultToArray(result);
+    result = resultToArray(result, debug);
   }
 
   this.body = result;
@@ -137,7 +138,7 @@ router.post('/post', function* () {
   var result = yield segment(source, threshold, debug, ip);
 
   if (this.query.json == '1') {
-    result = resultToArray(result);
+    result = resultToArray(result, debug);
   }
 
   this.body = result;
@@ -155,7 +156,7 @@ router.post('/post.php', function* () {
   var result = yield segment(source, threshold, debug, ip);
 
   if (this.query.json == '1') {
-    result = resultToArray(result);
+    result = resultToArray(result, debug);
   }
 
   this.body = result;
@@ -166,6 +167,6 @@ app.use((0, _koaBodyparser2.default)());
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-app.listen(80, function () {
+app.listen(process.env.PORT || 80, function () {
   console.log('PullWord is running');
 });
