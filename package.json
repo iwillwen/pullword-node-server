@@ -4,7 +4,8 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "node_modules/.bin/babel --presets es2015-without-regenerator -d dist src"
+    "build": "node_modules/.bin/babel --presets es2015-without-regenerator -d dist src",
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
